@@ -113,6 +113,8 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 				indFile->Allocate(freeMap, fileSize);
 				fileSize = 0;
 			}
+			indFile->WriteBack(dataSectors[curSector]);
+			delete indFile;
 			curSector = curSector + 1;
 		}
 		numSectors = curSector;
