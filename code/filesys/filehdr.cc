@@ -112,7 +112,6 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 			else{
 				indFile->Allocate(freeMap, fileSize);
 				fileSize = 0;
-				break;
 			}
 			curSector = curSector + 1;
 		}
