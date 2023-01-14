@@ -238,7 +238,7 @@ bool FileSystem::Create(char *name, int initialSize)
             success = TRUE;
             // everthing worked, flush all changes back to disk
             hdr->WriteBack(sector);
-            directory->WriteBack(directoryFile);
+            directory->WriteBack(curr_dir);
             freeMap->WriteBack(freeMapFile);
         }
         delete hdr;
@@ -396,37 +396,44 @@ bool FileSystem::Remove(char *name, bool recurRemove)
     directory = new Directory(NumDirEntries);
     directory->FetchFrom(directoryFile);
 
-    OpenFile* currDir = directoryFile, prevDir = NULL;
-    char
+    OpenFile *currDir = directoryFile, *prevDir = NULL;
+    char *prevTok, *currTok;
+    currTok = strtok(name, "/");
     
-    while(getline(ss, name_str, '/'))
-    {
-        name_c = (char*)name_str.c_str();
-        sector = directory->Find(name_c);
-        if(sector == -1 || !directory->isDir(name_c))
+    while(currTok){
+        sector = directory->Find(currTok);
+        if(sector == -1 || !directory->isDir(currTok))
             break;
+        prevDir = currDir;
         currDir = new OpenFile(sector);
         directory->FetchFrom(currDir);
+        prevTok = currTok;
+        currTok = strtok(NULL, "/");
     }
-
-    //if getline fails, then the file is not found
-    if()
 
     if (sector == -1){
         delete directory;
         return FALSE; // file not found
     }
+    currTok = (currTok == NULL) ? prevTok : currTok;
+    freeMap = new PersistentBitmap(freeMapFile, NumSectors);
+
+    if(recurRemove && directory->isDir(currTok)){
+        directory->recurRemove(freeMap);
+        directory->FetchFrom(prevDir);
+        currDir = prevDir;
+        currTok = prevTok;
+    }
+    
     fileHdr = new FileHeader;
     fileHdr->FetchFrom(sector);
 
-    freeMap = new PersistentBitmap(freeMapFile, NumSectors);
-
     fileHdr->Deallocate(freeMap); // remove data blocks
     freeMap->Clear(sector);       // remove header block
-    directory->Remove(name_c);
+    directory->Remove(currTok);
 
     freeMap->WriteBack(freeMapFile);     // flush to disk
-    directory->WriteBack(directoryFile); // flush to disk
+    directory->WriteBack(currDir); // flush to disk
     delete fileHdr;
     delete directory;
     delete freeMap;

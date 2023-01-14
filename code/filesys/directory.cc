@@ -162,6 +162,31 @@ bool Directory::Remove(char *name)
     return TRUE;
 }
 
+bool Directory::recurRemove(PersistentBitmap* freeMap){
+    for(int i = 0; i < tableSize; i++){
+        if(!table[i].inUse)
+            continue;
+        if(table[i].isDir){
+            Directory* nextDir = new Directory(NumDirEntries);
+            OpenFile* nextDirFile = new OpenFile(table[i].sector);
+            nextDir->FetchFrom(nextDirFile);
+            nextDir->recurRemove(freeMap);
+            freeMap->Clear(table[i].sector);
+            delete nextDir;
+            delete nextDirFile;
+        }
+        else{
+            FileHeader* nextFile = new FileHeader;
+            nextFile->FetchFrom(table[i].sector);
+            nextFile->Deallocate(freeMap);
+            freeMap->Clear(table[i].sector);
+            delete nextFile;
+        }
+        table[i].inUse = FALSE;
+    }
+    return TRUE;
+}
+
 bool Directory::isDir(char* name) {
     int i = FindIndex(name);
     if (i == -1)

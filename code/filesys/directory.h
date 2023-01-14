@@ -68,6 +68,8 @@ public:
 
     bool Remove(char *name); // Remove a file from the directory
 
+    bool Directory::recurRemove(PersistentBitmap* freeMap); // Remove a directory recursively
+
     bool Directory::isDir(char* name); // Check if a file is a directory
 
     void List();  // Print the names of all the files
