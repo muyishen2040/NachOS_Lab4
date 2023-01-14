@@ -116,6 +116,7 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 			}
 			curSector = curSector + 1;
 		}
+		numSectors = curSector;
 	}
 	return TRUE;
 }
@@ -243,24 +244,45 @@ int FileHeader::FileLength()
 
 void FileHeader::Print()
 {
-	int i, j, k;
-	char *data = new char[SectorSize];
+	int fileSize = numBytes;
+	
+	if(fileSize <= DirectSize){
+		int i, j, k;
+		char *data = new char[SectorSize];
 
-	printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
-	for (i = 0; i < numSectors; i++)
-		printf("%d ", dataSectors[i]);
-	printf("\nFile contents:\n");
-	for (i = k = 0; i < numSectors; i++)
-	{
-		kernel->synchDisk->ReadSector(dataSectors[i], data);
-		for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++)
+		printf("FileHeader contents.  File size: %d.  File blocks:\n", numBytes);
+		for (i = 0; i < numSectors; i++)
+			printf("%d ", dataSectors[i]);
+		printf("\nFile contents:\n");
+		for (i = k = 0; i < numSectors; i++)
 		{
-			if ('\040' <= data[j] && data[j] <= '\176') // isprint(data[j])
-				printf("%c", data[j]);
-			else
-				printf("\\%x", (unsigned char)data[j]);
+			kernel->synchDisk->ReadSector(dataSectors[i], data);
+			for (j = 0; (j < SectorSize) && (k < numBytes); j++, k++)
+			{
+				if ('\040' <= data[j] && data[j] <= '\176') // isprint(data[j])
+					printf("%c", data[j]);
+				else
+					printf("\\%x", (unsigned char)data[j]);
+			}
+			printf("\n");
 		}
-		printf("\n");
+		delete[] data;
 	}
-	delete[] data;
+	else{
+		if(fileSize <= SingleIndSize){
+			printf("Current Block - Single Indirect Block with %d blocks\n", numSectors);
+		}else if(fileSize <= DoubleIndSize){
+			printf("Current Block - Double Indirect Block with %d blocks\n", numSectors);
+		}else if(fileSize <= TripleIndSize){
+			printf("Current Block - Triple Indirect Block with %d blocks\n", numSectors);
+		}else{
+			printf("Current Block - Maximum Indirect Block with %d blocks\n", numSectors);
+		}
+		for(int i=0;i<numSectors;i++){
+			FileHeader *indFile = new FileHeader;
+			indFile->FetchFrom(dataSectors[i]);
+			indFile->Print();
+			delete indFile;
+		}
+	}
 }
