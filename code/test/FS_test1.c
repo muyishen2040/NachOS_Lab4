@@ -6,6 +6,8 @@ int main(void)
 	int success = Create("/file1", 27);
 	OpenFileId fid;
 	int i;
+	MSG("success:");
+	MSG(success);
 	if (success != 1)
 		MSG("Failed on creating file");
 	fid = Open("/file1");

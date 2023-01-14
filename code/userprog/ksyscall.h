@@ -42,7 +42,7 @@ int SysCreate(char *name, int size){
 
 OpenFileId SysOpen(char* name){
 	OpenFile *file = kernel->fileSystem->Open(name);
-	if(file==nullptr){
+	if(file==NULL){
 		return 0;
 	}
 	return 1;

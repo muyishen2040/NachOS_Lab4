@@ -42,6 +42,7 @@
 // Copyright (c) 1992-1993 The Regents of the University of California.
 // All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
+/*
 #ifndef FILESYS_STUB
 
 #include "copyright.h"
@@ -128,7 +129,7 @@ FileSystem::FileSystem(bool format)
         freeMap->WriteBack(freeMapFile); // flush changes to disk
         directory->WriteBack(directoryFile);
 
-        curOpenFile = nullptr;
+        curOpenFile = NULL;
 
         if (debug->IsEnabled('f'))
         {
@@ -257,10 +258,7 @@ int FileSystem::ReadFile(char* buffer, int size, OpenFileId id){
     return curOpenFile->Read(buffer, size);
 }
 
-void FileSystem::CloseFile(OpenFileId id){
-    delete curOpenFile;
-    curOpenFile = nullptr;
-}
+// void FileSystem::CloseFile(OpenFileId id);
 
 
 bool FileSystem::CreateDirectory(char *name)
@@ -502,3 +500,4 @@ void FileSystem::Print()
 }
 
 #endif // FILESYS_STUB
+*/
