@@ -65,59 +65,49 @@ FileHeader::~FileHeader()
 //	"freeMap" is the bit map of free disk sectors
 //	"fileSize" is the bit map of free disk sectors
 //----------------------------------------------------------------------
-
 bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 {
 	numBytes = fileSize;
 	numSectors = divRoundUp(fileSize, SectorSize);
 	if (freeMap->NumClear() < numSectors)
 		return FALSE; // not enough space
-
 	
-	if(fileSize <= DirectSize){
-		for (int i = 0; i < numSectors; i++)
-		{
+	//mp4 PART II(3)
+	if(fileSize <= FileSize1){ //file < 4KB
+		for (int i = 0; i < numSectors; i++){
 			dataSectors[i] = freeMap->FindAndSet();
 			// since we checked that there was enough free space,
 			// we expect this to succeed
 			ASSERT(dataSectors[i] >= 0);
 		}
-	}
+	} 
 	else{
+		int i, dealFileSize;
+		if (fileSize <= FileSize2)     //file < 128KB
+			dealFileSize = FileSize1;
+		else if (fileSize <= FileSize3) //file < 4MB
+			dealFileSize = FileSize2;
+		else                            // 64 MB
+			dealFileSize = FileSize3;
 		
-		int DivFileSize = 0;
-		if(fileSize <= SingleIndSize){
-			DivFileSize = DirectSize;
-		}else if(fileSize > SingleIndSize && fileSize <= DoubleIndSize){
-			DivFileSize = SingleIndSize;
-		}else if(fileSize > DoubleIndSize && fileSize <= TripleIndSize){
-			DivFileSize = DoubleIndSize;
-		}else{
-			DivFileSize = TripleIndSize;
-		}
+		for (i = 0; fileSize > 0; i++){
+			dataSectors[i] = freeMap->FindAndSet();
+			ASSERT(dataSectors[i] >= 0);
 
-		int curSector = 0;
-		
-		while(fileSize > 0){
-			dataSectors[curSector] = freeMap->FindAndSet();
-			ASSERT(dataSectors[curSector] >= 0);
-
-			FileHeader *indFile = new FileHeader;
-
-			if (fileSize > DivFileSize)
-			{
-				indFile->Allocate(freeMap, DivFileSize);
-				fileSize = fileSize - DivFileSize; 
+			FileHeader *sub_header = new FileHeader;
+			if (fileSize > dealFileSize){
+				sub_header->Allocate(freeMap, dealFileSize);
+				fileSize -= dealFileSize;
 			}
 			else{
-				indFile->Allocate(freeMap, fileSize);
+				sub_header->Allocate(freeMap, fileSize);
 				fileSize = 0;
 			}
-			indFile->WriteBack(dataSectors[curSector]);
-			delete indFile;
-			curSector = curSector + 1;
+			// write back to disk
+			sub_header->WriteBack(dataSectors[i]);
+			delete sub_header;
 		}
-		numSectors = curSector;
+		numSectors = i;
 	}
 	return TRUE;
 }
@@ -128,25 +118,23 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 //
 //	"freeMap" is the bit map of free disk sectors
 //----------------------------------------------------------------------
-
 void FileHeader::Deallocate(PersistentBitmap *freeMap)
 {
-	int fileSize = numBytes;
-	if(fileSize <= DirectSize){
-		for(int i = 0; i < numSectors; i++)
-		{
+	//mp4 PART II(3)
+	if (numBytes <= FileSize1){ //處理 < 4KB
+		for (int i = 0; i < numSectors; i++){
 			ASSERT(freeMap->Test((int)dataSectors[i])); // ought to be marked!
 			freeMap->Clear((int)dataSectors[i]);
 		}
 	}
-	else{
-		for(int i= 0; i < numSectors; i++){
-			FileHeader *indFile = new FileHeader;
-			indFile->FetchFrom(dataSectors[i]);
-			indFile->Deallocate(freeMap);
-			ASSERT(freeMap->Test((int)dataSectors[i])); // ought to be marked!
-			freeMap->Clear((int)dataSectors[i]);
-			delete indFile;
+	else {// this file header point to header, not block
+		for (int i = 0; i < numSectors; i++){
+			FileHeader *hdr = new FileHeader ;
+			hdr->FetchFrom((int)dataSectors[i]) ;
+			hdr->Deallocate(freeMap) ;
+			ASSERT(freeMap->Test((int)dataSectors[i]));
+			freeMap->Clear((int)dataSectors[i]) ;
+			delete hdr ;
 		}
 	}
 }
@@ -157,7 +145,6 @@ void FileHeader::Deallocate(PersistentBitmap *freeMap)
 //
 //	"sector" is the disk sector containing the file header
 //----------------------------------------------------------------------
-
 void FileHeader::FetchFrom(int sector)
 {
 	kernel->synchDisk->ReadSector(sector, (char *)this);
@@ -174,7 +161,6 @@ void FileHeader::FetchFrom(int sector)
 //
 //	"sector" is the disk sector to contain the file header
 //----------------------------------------------------------------------
-
 void FileHeader::WriteBack(int sector)
 {
 	kernel->synchDisk->WriteSector(sector, (char *)this);
@@ -198,40 +184,32 @@ void FileHeader::WriteBack(int sector)
 //
 //	"offset" is the location within the file of the byte in question
 //----------------------------------------------------------------------
-
 int FileHeader::ByteToSector(int offset)
 {
-	int fileSize = numBytes;
-	if(fileSize <= DirectSize){
+	//mp4 PART II(3)
+	FileHeader *hdr = new FileHeader;
+	int filesize_div;
+	if (numBytes <= FileSize1){ //處理 < 4KB
 		return (dataSectors[offset / SectorSize]);
 	}
-	else{
-		int DivFileSize = 0;
-		int retSector = -1;
-		if(fileSize <= SingleIndSize){
-			DivFileSize = DirectSize;
-		}else if(fileSize > SingleIndSize && fileSize <= DoubleIndSize){
-			DivFileSize = SingleIndSize;
-		}else if(fileSize > DoubleIndSize && fileSize <= TripleIndSize){
-			DivFileSize = DoubleIndSize;
-		}else{
-			DivFileSize = TripleIndSize;
-		}
+	else if (numBytes <= FileSize2)
+		filesize_div = FileSize1;
+	else if (numBytes <= FileSize3)
+		filesize_div = FileSize2;
+	else  // 64 MB
+		filesize_div = FileSize3;
 
-		int blockIdx = offset / DivFileSize;
-		FileHeader *indFile = new FileHeader;
-		indFile->FetchFrom(dataSectors[blockIdx]);
-		retSector = indFile->ByteToSector(offset - blockIdx*DivFileSize);
-		delete indFile;
-		return retSector;
-	}
+	int offset_h = divRoundDown(offset, filesize_div);
+	hdr->FetchFrom(dataSectors[offset_h]);
+	int sector = hdr->ByteToSector(offset - offset_h*filesize_div);
+	delete hdr;
+	return sector;
 }
 
 //----------------------------------------------------------------------
 // FileHeader::FileLength
 // 	Return the number of bytes in the file.
 //----------------------------------------------------------------------
-
 int FileHeader::FileLength()
 {
 	return numBytes;
@@ -242,12 +220,19 @@ int FileHeader::FileLength()
 // 	Print the contents of the file header, and the contents of all
 //	the data blocks pointed to by the file header.
 //----------------------------------------------------------------------
-
 void FileHeader::Print()
 {
-	int fileSize = numBytes;
-	
-	if(fileSize <= DirectSize){
+	//mp4 PART II(3)
+	if (numBytes > FileSize1){ // this header point to header, not block
+		for (int i = 0; i < numSectors; i++){
+			printf("this level hdr: %d\n", dataSectors[i]);
+			FileHeader *hdr = new FileHeader ;
+			hdr->FetchFrom((int)dataSectors[i]) ;
+			hdr->Print() ;
+			delete hdr ;
+		}
+	}
+	else{ //原本的code，處理 <= 4KB
 		int i, j, k;
 		char *data = new char[SectorSize];
 
@@ -268,22 +253,5 @@ void FileHeader::Print()
 			printf("\n");
 		}
 		delete[] data;
-	}
-	else{
-		if(fileSize <= SingleIndSize){
-			printf("Current Block - Single Indirect Block with %d blocks\n", numSectors);
-		}else if(fileSize <= DoubleIndSize){
-			printf("Current Block - Double Indirect Block with %d blocks\n", numSectors);
-		}else if(fileSize <= TripleIndSize){
-			printf("Current Block - Triple Indirect Block with %d blocks\n", numSectors);
-		}else{
-			printf("Current Block - Maximum Indirect Block with %d blocks\n", numSectors);
-		}
-		for(int i=0;i<numSectors;i++){
-			FileHeader *indFile = new FileHeader;
-			indFile->FetchFrom(dataSectors[i]);
-			indFile->Print();
-			delete indFile;
-		}
 	}
 }

@@ -29,6 +29,11 @@
 #define DoubleIndSize (NumDirect * NumDirect * NumDirect * SectorSize)
 #define TripleIndSize (NumDirect * NumDirect * NumDirect * NumDirect * SectorSize)
 
+#define FileSize1 (NumDirect * SectorSize) // 30 * 128 -> 4KB
+#define FileSize2 (NumDirect * NumDirect * SectorSize) // 30 * 30 * 128 -> 128 KB
+#define FileSize3 (NumDirect * NumDirect * NumDirect * SectorSize) // 30 * 30 * 30 * 128 -> 4 MB
+#define MaxFileSize (NumDirect * NumDirect * NumDirect * NumDirect * SectorSize) // -> 128 MB
+
 // The following class defines the Nachos "file header" (in UNIX terms,
 // the "i-node"), describing where on disk to find all of the data in the file.
 // The file header is organized as a simple table of pointers to
