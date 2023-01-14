@@ -73,12 +73,49 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 	if (freeMap->NumClear() < numSectors)
 		return FALSE; // not enough space
 
-	for (int i = 0; i < numSectors; i++)
-	{
-		dataSectors[i] = freeMap->FindAndSet();
-		// since we checked that there was enough free space,
-		// we expect this to succeed
-		ASSERT(dataSectors[i] >= 0);
+	
+	if(fileSize <= DirectSize){
+		for (int i = 0; i < numSectors; i++)
+		{
+			dataSectors[i] = freeMap->FindAndSet();
+			// since we checked that there was enough free space,
+			// we expect this to succeed
+			ASSERT(dataSectors[i] >= 0);
+		}
+	}
+	else{
+		
+		int DivFileSize = 0;
+		if(fileSize <= SingleIndSize){
+			DivFileSize = DirectSize;
+		}else if(fileSize > SingleIndSize && fileSize <= DoubleIndSize){
+			DivFileSize = SingleIndSize;
+		}else if(fileSize > DoubleIndSize && fileSize <= TripleIndSize){
+			DivFileSize = DoubleIndSize;
+		}else{
+			DivFileSize = TripleIndSize;
+		}
+
+		int curSector = 0;
+		
+		while(fileSize > 0){
+			dataSectors[curSector] = freeMap->FindAndSet();
+			ASSERT(dataSectors[curSector] >= 0);
+
+			FileHeader *indFile = new FileHeader;
+
+			if (fileSize >= DivFileSize)
+			{
+				indFile->Allocate(freeMap, DivFileSize);
+				fileSize = fileSize - DivFileSize; 
+			}
+			else{
+				indFile->Allocate(freeMap, fileSize);
+				fileSize = 0;
+				break;
+			}
+			curSector = curSector + 1;
+		}
 	}
 	return TRUE;
 }
@@ -92,10 +129,23 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 
 void FileHeader::Deallocate(PersistentBitmap *freeMap)
 {
-	for (int i = 0; i < numSectors; i++)
-	{
-		ASSERT(freeMap->Test((int)dataSectors[i])); // ought to be marked!
-		freeMap->Clear((int)dataSectors[i]);
+	int fileSize = numBytes;
+	if(fileSize <= DirectSize){
+		for(int i = 0; i < numSectors; i++)
+		{
+			ASSERT(freeMap->Test((int)dataSectors[i])); // ought to be marked!
+			freeMap->Clear((int)dataSectors[i]);
+		}
+	}
+	else{
+		for(int i= 0; i < numSectors; i++){
+			FileHeader *indFile = new FileHeader;
+			indFile->FetchFrom(dataSectors[i]);
+			indFile->Deallocate(freeMap);
+			ASSERT(freeMap->Test((int)dataSectors[i])); // ought to be marked!
+			freeMap->Clear((int)dataSectors[i]);
+			delete indFile;
+		}
 	}
 }
 
@@ -149,7 +199,30 @@ void FileHeader::WriteBack(int sector)
 
 int FileHeader::ByteToSector(int offset)
 {
-	return (dataSectors[offset / SectorSize]);
+	int fileSize = numBytes;
+	if(fileSize <= DirectSize){
+		return (dataSectors[offset / SectorSize]);
+	}
+	else{
+		int DivFileSize = 0;
+		int retSector = -1;
+		if(fileSize <= SingleIndSize){
+			DivFileSize = DirectSize;
+		}else if(fileSize > SingleIndSize && fileSize <= DoubleIndSize){
+			DivFileSize = SingleIndSize;
+		}else if(fileSize > DoubleIndSize && fileSize <= TripleIndSize){
+			DivFileSize = DoubleIndSize;
+		}else{
+			DivFileSize = TripleIndSize;
+		}
+
+		int blockIdx = offset / DivFileSize;
+		FileHeader *indFile = new FileHeader;
+		indFile->FetchFrom(dataSectors[blockIdx]);
+		retSector = indFile->ByteToSector(offset - blockIdx*DivFileSize);
+		delete indFile;
+		return retSector;
+	}
 }
 
 //----------------------------------------------------------------------
