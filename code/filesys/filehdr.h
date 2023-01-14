@@ -75,6 +75,9 @@ public:
 
 	void Print(); // Print the contents of the file.
 
+	//mp4 PART II(3)
+	int getFileHeaderNum(int fileSize);
+
 private:
 	/*
 		MP4 hint:
@@ -98,3 +101,38 @@ private:
 };
 
 #endif // FILEHDR_H
+/*
+
+class FileHeader
+{
+public:
+	// MP4 mod tag
+	FileHeader(); // dummy constructor to keep valgrind happy
+	~FileHeader();
+
+	bool Allocate(PersistentBitmap *bitMap, int fileSize); // Initialize a file header,
+														   //  including allocating space
+														   //  on disk for the file data
+	void Deallocate(PersistentBitmap *bitMap);			   // De-allocate this file's
+														   //  data blocks
+
+	void FetchFrom(int sectorNumber); // Initialize file header from disk
+	void WriteBack(int sectorNumber); // Write modifications to file header
+									  //  back to disk
+
+	int ByteToSector(int offset); // Convert a byte offset into the file
+								  // to the disk sector containing
+								  // the byte
+
+	int FileLength(); // Return the length of the file
+					  // in bytes
+
+	void Print(); // Print the contents of the file.
+
+
+	int numBytes;				// Number of bytes in the file
+	int numSectors;				// Number of data sectors in the file
+	int dataSectors[NumDirect]; // Disk sector numbers for each data
+								// block in the file
+};
+*/

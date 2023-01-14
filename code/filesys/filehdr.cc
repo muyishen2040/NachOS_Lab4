@@ -22,7 +22,7 @@
 // All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
 
-#include "copyright.h"
+##include "copyright.h"
 
 #include "filehdr.h"
 #include "debug.h"
@@ -254,4 +254,49 @@ void FileHeader::Print()
 		}
 		delete[] data;
 	}
+}
+
+//mp4 PART II(3)
+int FileHeader::getFileHeaderNum(int fileSize){
+	int headerNum = 1; //root header file
+	if(fileSize <= FileSize1) {// < 4KB
+
+	} 
+	else if (fileSize <= FileSize2){ // < 128 KB
+		for (int i = 0; fileSize > 0; i++){
+			if (fileSize > FileSize1){ //解決一條level1
+				headerNum += 1;
+				fileSize -= FileSize1;
+			}
+			else{
+				headerNum += 1;
+				fileSize = 0;
+			}
+		}
+	}
+	else if (fileSize <= FileSize3){ // < 4 MB
+		for (int i = 0; fileSize > 0; i++){
+			if (fileSize > FileSize2){
+				headerNum += (30+1) ;
+				fileSize -= FileSize2 ;
+			}
+			else{
+				headerNum += getFileHeaderNum(fileSize);
+				fileSize -= fileSize ;
+			}
+		}
+	}
+	else{ // < 64 MB
+		for (int i = 0; fileSize > 0; i++){
+			if (fileSize > FileSize3){
+				headerNum += (30*30 + 30 + 1);
+				fileSize -= FileSize3;
+			}
+			else{
+				headerNum += getFileHeaderNum(fileSize);
+				fileSize -= fileSize;
+			}
+		}
+	}
+	return headerNum ;
 }
