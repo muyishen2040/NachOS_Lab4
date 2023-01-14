@@ -346,7 +346,23 @@ OpenFile * FileSystem::Open(char *name)
     DEBUG(dbgFile, "Opening file" << name);
     directory->FetchFrom(directoryFile);
     
-    sector = directory->Find(name);
+    OpenFile* curr_dir = directoryFile;
+    string name_str(name);
+    stringstream ss(name_str);
+    char* name_c;
+    while(getline(ss, name_str, '/')){
+        name_c = (char*)name_str.c_str();
+        sector = directory->Find(name_c);
+        if(sector == -1)
+            break;
+        else{
+            if(!directory->isDir(name_c))
+                break;
+            curr_dir = new OpenFile(sector);
+            directory->FetchFrom(curr_dir);
+        }
+    }
+
     if (sector >= 0)
         openFile = new OpenFile(sector); // name was found in directory
     delete directory;
@@ -395,8 +411,7 @@ bool FileSystem::Remove(char *name)
         directory->FetchFrom(curr_dir);
     }
 
-    if (sector == -1)
-    {
+    if (sector == -1){
         delete directory;
         return FALSE; // file not found
     }
@@ -430,8 +445,7 @@ void FileSystem::List(char* name, bool recur_list)
     stringstream ss(name_str);
     char* name_c;
 
-    while(getline(ss, name_str, '/'))
-    {
+    while(getline(ss, name_str, '/')){
         name_c = (char*)name_str.c_str();
         if(directory->Find(name_c) == -1 || !directory->isDir(name_c))
             break;
