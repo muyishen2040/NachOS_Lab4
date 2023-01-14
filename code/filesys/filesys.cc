@@ -345,10 +345,14 @@ OpenFile * FileSystem::Open(char *name)
 
     DEBUG(dbgFile, "Opening file" << name);
     directory->FetchFrom(directoryFile);
+    
     sector = directory->Find(name);
     if (sector >= 0)
         openFile = new OpenFile(sector); // name was found in directory
     delete directory;
+    
+    curOpenFile = openFile;
+
     return openFile; // return NULL if not found
 }
 
