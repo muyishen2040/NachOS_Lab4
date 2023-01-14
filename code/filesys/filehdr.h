@@ -29,11 +29,6 @@
 #define DoubleIndSize (NumDirect * NumDirect * NumDirect * SectorSize)
 #define TripleIndSize (NumDirect * NumDirect * NumDirect * NumDirect * SectorSize)
 
-#define FileSize1 (NumDirect * SectorSize) // 30 * 128 -> 4KB
-#define FileSize2 (NumDirect * NumDirect * SectorSize) // 30 * 30 * 128 -> 128 KB
-#define FileSize3 (NumDirect * NumDirect * NumDirect * SectorSize) // 30 * 30 * 30 * 128 -> 4 MB
-#define MaxFileSize (NumDirect * NumDirect * NumDirect * NumDirect * SectorSize) // -> 128 MB
-
 // The following class defines the Nachos "file header" (in UNIX terms,
 // the "i-node"), describing where on disk to find all of the data in the file.
 // The file header is organized as a simple table of pointers to
@@ -75,9 +70,6 @@ public:
 
 	void Print(); // Print the contents of the file.
 
-	//mp4 PART II(3)
-	int getFileHeaderNum(int fileSize);
-
 private:
 	/*
 		MP4 hint:
@@ -101,38 +93,3 @@ private:
 };
 
 #endif // FILEHDR_H
-/*
-
-class FileHeader
-{
-public:
-	// MP4 mod tag
-	FileHeader(); // dummy constructor to keep valgrind happy
-	~FileHeader();
-
-	bool Allocate(PersistentBitmap *bitMap, int fileSize); // Initialize a file header,
-														   //  including allocating space
-														   //  on disk for the file data
-	void Deallocate(PersistentBitmap *bitMap);			   // De-allocate this file's
-														   //  data blocks
-
-	void FetchFrom(int sectorNumber); // Initialize file header from disk
-	void WriteBack(int sectorNumber); // Write modifications to file header
-									  //  back to disk
-
-	int ByteToSector(int offset); // Convert a byte offset into the file
-								  // to the disk sector containing
-								  // the byte
-
-	int FileLength(); // Return the length of the file
-					  // in bytes
-
-	void Print(); // Print the contents of the file.
-
-
-	int numBytes;				// Number of bytes in the file
-	int numSectors;				// Number of data sectors in the file
-	int dataSectors[NumDirect]; // Disk sector numbers for each data
-								// block in the file
-};
-*/

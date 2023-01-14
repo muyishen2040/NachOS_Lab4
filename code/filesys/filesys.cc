@@ -43,6 +43,7 @@
 // All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
 
+/*
 #ifndef FILESYS_STUB
 
 #include "copyright.h"
@@ -519,7 +520,7 @@ void FileSystem::Print()
 
 #endif // FILESYS_STUB
 
-
+*
 /*
 #ifndef FILESYS_STUB
 

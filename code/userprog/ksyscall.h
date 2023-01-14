@@ -35,34 +35,30 @@ int SysCreate(char *filename)
 }
 #endif
 
-int SysCreate(char *filename,int size)
-{
-	// return value
-	// 1: success
-	// 0: failed
-	return kernel->fileSystem->Create(filename,size);
+int SysCreate(char *name, int size){
+	kernel->fileSystem->Create(name, size);
+	return 1;
 }
 
-int SysWrite(char *buffer, int size, int id){
-	return kernel->fileSystem->curopen->Write(buffer,size);
-}
-//When you finish the function "OpenAFile", you can remove the comment below.
-OpenFileId SysOpen(char *name)
-{
-	if(kernel->fileSystem->Open(name)!=NULL)
-        return 1;
-	else return 0;
+OpenFileId SysOpen(char* name){
+	OpenFile *file = kernel->fileSystem->Open(name);
+	if(file==NULL){
+		return 0;
+	}
+	return 1;
 }
 
-int SysRead(char *buffer, int size, int id){
-	return kernel->fileSystem->curopen->Read(buffer,size);
+int SysRead(char *buf, int size, OpenFileId id){
+	return kernel->fileSystem->ReadFile(buf, size, id);
 }
 
-int SysClose(int id)
-{
-	delete kernel->fileSystem->curopen;
-	kernel->fileSystem->curopen = NULL;
-    return 1;
+int SysWrite(char *buf, int size, OpenFileId id){
+	return kernel->fileSystem->WriteFile(buf, size, id);
+}
+
+int SysClose(OpenFileId id){
+	kernel->fileSystem->CloseFile(id);
+	return 1;
 }
 
 

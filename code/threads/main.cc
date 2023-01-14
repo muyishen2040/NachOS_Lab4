@@ -338,9 +338,7 @@ int main(int argc, char **argv)
     }
     if (dirListFlag)
     {
-        //kernel->fileSystem->List(listDirectoryName, recursiveListFlag);
-        if(recursiveListFlag)kernel->fileSystem->RecursiveList(listDirectoryName);
-        else kernel->fileSystem->List(listDirectoryName);
+        kernel->fileSystem->List(listDirectoryName, recursiveListFlag);
     }
     if (mkdirFlag)
     {

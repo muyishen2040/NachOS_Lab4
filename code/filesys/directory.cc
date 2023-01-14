@@ -24,8 +24,7 @@
 #include "utility.h"
 #include "filehdr.h"
 #include "directory.h"
-
-#define NumDirEntries 64
+#include "filesys.h"
 
 //----------------------------------------------------------------------
 // Directory::Directory
