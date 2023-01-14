@@ -104,7 +104,7 @@ bool FileHeader::Allocate(PersistentBitmap *freeMap, int fileSize)
 
 			FileHeader *indFile = new FileHeader;
 
-			if (fileSize >= DivFileSize)
+			if (fileSize > DivFileSize)
 			{
 				indFile->Allocate(freeMap, DivFileSize);
 				fileSize = fileSize - DivFileSize; 
