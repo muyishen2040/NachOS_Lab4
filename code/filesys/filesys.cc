@@ -386,7 +386,7 @@ OpenFile * FileSystem::Open(char *name)
 //	"name" -- the text name of the file to be removed
 //----------------------------------------------------------------------
 
-bool FileSystem::Remove(char *name)
+bool FileSystem::Remove(char *name, bool recurRemove)
 {
     Directory *directory;
     PersistentBitmap *freeMap;
@@ -396,10 +396,8 @@ bool FileSystem::Remove(char *name)
     directory = new Directory(NumDirEntries);
     directory->FetchFrom(directoryFile);
 
-    OpenFile* curr_dir = directoryFile;
-    string name_str(name);
-    stringstream ss(name_str);
-    char* name_c;
+    OpenFile* currDir = directoryFile, prevDir = NULL;
+    char
     
     while(getline(ss, name_str, '/'))
     {
@@ -407,9 +405,12 @@ bool FileSystem::Remove(char *name)
         sector = directory->Find(name_c);
         if(sector == -1 || !directory->isDir(name_c))
             break;
-        curr_dir = new OpenFile(sector);
-        directory->FetchFrom(curr_dir);
+        currDir = new OpenFile(sector);
+        directory->FetchFrom(currDir);
     }
+
+    //if getline fails, then the file is not found
+    if()
 
     if (sector == -1){
         delete directory;
